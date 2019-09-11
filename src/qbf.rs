@@ -9,12 +9,13 @@ struct CNF {
     clauses: Vec<Clause>,
 }
 
-struct Clause {
-    literals: Vec<LabeledLiteral>,
+pub(crate) struct Clause {
+    literals: Vec<Literal>,
 }
 
-struct LabeledLiteral {
-    literal: Literal,
+struct LabeledVariable {
+    basic_variable: usize,
+    quantified_at: usize,
     assignment: Assignment,
 }
 
