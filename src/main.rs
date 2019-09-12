@@ -1,6 +1,5 @@
-mod all_exp_res;
 mod qbf;
-mod qrat;
+mod proof;
 
 #[cfg(test)]
 mod tests;

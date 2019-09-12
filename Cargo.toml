@@ -1,7 +1,7 @@
 [package]
-name = "ex2rat"
+name = "expfiltrator"
 version = "0.1.0"
-authors = ["Jesko Dujmovic <jeskod+gitlab@gmail.com>"]
+authors = ["Jesko Dujmovic <jeskod+git@gmail.com>"]
 edition = "2018"
 
 [dependencies]
