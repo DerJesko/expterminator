@@ -1,6 +1,7 @@
 use ansi_term::Colour::RGB;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 fn assignment_colour() -> ansi_term::Colour {
     RGB(100, 100, 100)
@@ -9,7 +10,7 @@ fn assignment_colour() -> ansi_term::Colour {
 #[derive(Clone, Debug)]
 pub struct QBF {
     pub vars: Vec<usize>,
-    pub formula: CNF,
+    pub cnf: CNF,
 }
 
 impl QBF {
@@ -23,6 +24,38 @@ impl QBF {
             quantifiers[self.vars[i]].push(i);
         }
         quantifiers
+    }
+}
+
+impl QBF {
+    pub fn add_clause(&mut self, clause: &Clause) -> bool {
+        let Clause(literals) = clause;
+        for l in literals {
+            if l.var() >= self.vars.len() {
+                return false;
+            }
+        }
+        let CNF(clauses) = &mut self.cnf;
+        clauses.push(clause.clone());
+        true
+    }
+
+    pub fn remove_clause(&mut self, index: usize) -> bool {
+        let CNF(clauses) = &mut self.cnf;
+        if clauses.len() - 1 < index {
+            return false;
+        }
+        // TODO Clause removal
+        true
+    }
+
+    pub fn remove_literal(&mut self, clause_index: usize, literal_index: usize) -> bool {
+        let CNF(clauses) = &mut self.cnf;
+        if (clauses.len() <= clause_index) || (clauses[clause_index].0.len() <= literal_index) {
+            return false;
+        }
+        // TODO Literal removal
+        true
     }
 }
 
@@ -48,7 +81,7 @@ impl fmt::Display for QBF {
             }
         }
         s.push_str(":");
-        s.push_str(&self.formula.to_string());
+        s.push_str(&self.cnf.to_string());
         write!(f, "{}", s)
     }
 }
@@ -72,8 +105,9 @@ impl fmt::Display for CNF {
     }
 }
 
+// TODO implement eq hash
 #[derive(Clone, Debug)]
-pub struct Clause(pub Vec<Literal>);
+pub struct Clause(pub HashSet<Literal>);
 
 impl fmt::Display for Clause {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -82,19 +116,17 @@ impl fmt::Display for Clause {
             return write!(f, "⊥");
         }
         let mut s = String::new();
-        for i in 0..(literals.len() as isize) - 1 {
-            s.push_str(&literals[i as usize].to_string());
-            s.push_str("∧");
-        }
-        match literals.last() {
-            Some(l) => s.push_str(&l.to_string()),
-            _ => {}
+        for (i, l) in literals.iter().enumerate() {
+            s.push_str(&l.to_string());
+            if i < literals.len() - 1 {
+                s.push_str("∧");
+            }
         }
         write!(f, "({})", s)
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct LabeledVariable {
     pub variable: usize,
     pub assignment: Option<Assignment>,
@@ -118,10 +150,19 @@ impl fmt::Display for LabeledVariable {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Literal {
     Positive(LabeledVariable),
     Negative(LabeledVariable),
+}
+
+impl Literal {
+    pub fn var(&self) -> usize {
+        match self {
+            Literal::Positive(l) => l.variable,
+            Literal::Negative(l) => l.variable,
+        }
+    }
 }
 
 impl fmt::Display for Literal {
@@ -161,6 +202,16 @@ impl fmt::Display for Assignment {
             }
         }
         write!(f, "{}", s)
+    }
+}
+
+impl Hash for Assignment {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let Assignment(map) = self;
+        for (key, val) in map.iter() {
+            key.hash(state);
+            val.hash(state);
+        }
     }
 }
 

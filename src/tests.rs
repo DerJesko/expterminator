@@ -1,4 +1,4 @@
-use crate::qbf::{Clause, LabeledVariable, Literal, CNF, QBF, Assignment};
+use crate::qbf::{Assignment, Clause, LabeledVariable, Literal, CNF, QBF};
 use std::collections::HashMap;
 
 #[test]
@@ -14,9 +14,11 @@ fn display() {
         variable: 3,
         assignment: Some(Assignment(map)),
     });
+    /*
     let qbf = QBF {
         vars: vec![1, 2, 4, 2],
-        formula: CNF(vec![Clause(vec![lit1, lit2]), Clause(vec![])]),
+        cnf: CNF(vec![Clause(vec![lit1, lit2]), Clause(vec![])]),
     };
     println!("{}", qbf);
+    */
 }

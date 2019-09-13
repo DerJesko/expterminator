@@ -1,27 +1,19 @@
-use crate::qbf::{Clause, QBF};
+use crate::qbf::{Clause, CNF, QBF};
 
-trait Proof {
-    fn apply(&self, formula: &mut QBF);
+enum Change {
+    ClauseAddition(Clause),       // Clause which is to be added
+    ClauseRemoval(usize),         // Index of clause which is to be removed
+    LiteralRemoval(usize, usize), // (Clause, Literal) index of literal which is to be removed
 }
 
-// TODO the proofs also need the witnesses for the steps
-
-struct QRATProof {
-    rules: Vec<QRATRule>,
-}
-
-enum QRATRule {
-    UnitPropagation(Clause), // The clause which is to be added
-    QRATAddition(Clause),    // The clause which is to be added
-    ClauseRemoval(usize),    // The index of the clause which is to be removed
-    QRATLiteralRemoval(
-        usize, // The index of the clause from which a literal is to be removed
-        usize, // The index of the literal which is to be removed inside the clause
-    ),
-    UniversalLiteralRemoval(
-        usize, // The index of the clause from which a literal is to be removed
-        usize, // The index of the literal which is to be removed inside the clause
-    ),
+impl Change {
+    fn apply(&self, formula: &mut QBF) -> bool {
+        match self {
+            Change::ClauseAddition(c) => formula.add_clause(c),
+            Change::ClauseRemoval(i) => formula.remove_clause(*i),
+            Change::LiteralRemoval(c_index, l_index) => formula.remove_literal(*c_index, *l_index),
+        }
+    }
 }
 
 struct AllExpResProof {
@@ -29,6 +21,6 @@ struct AllExpResProof {
 }
 
 enum AllExpResRule {
-    Axiom(Clause),      // The clause which is created by the axiom rule
-    Resolution(Clause), // The clause which is created by resolution
+    Axiom(usize),                           // Index of the clause used for the axiom rule
+    Resolution(usize, usize, usize, usize), // Clause and literal index of the two literals used for resolution
 }
