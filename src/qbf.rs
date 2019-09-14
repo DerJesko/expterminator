@@ -16,7 +16,6 @@ pub struct QBF {
 impl QBF {
     fn quantifiers(&self) -> Vec<Vec<usize>> {
         let mut quantifiers: Vec<Vec<usize>> = vec![];
-        println!("q: {:?}", quantifiers);
         for i in 0..self.vars.len() {
             for _ in 0..(self.vars[i] as isize) + 1 - (quantifiers.len() as isize) {
                 quantifiers.push(vec![]);
@@ -100,7 +99,6 @@ impl fmt::Display for CNF {
         let CNF(clauses) = self;
         let mut s = String::new();
         for (i, c) in clauses.iter().enumerate() {
-            //TODO make into function or macro ???
             s.push_str(&c.to_string());
             if i < clauses.len() - 1 {
                 s.push_str("∨");
@@ -116,7 +114,7 @@ pub struct Clause(pub HashSet<Literal>);
 impl fmt::Display for Clause {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let Clause(literals) = self;
-        if literals.len() == 0 {
+        if literals.is_empty() {
             return write!(f, "⊥");
         }
         let mut s = String::new();
@@ -159,9 +157,9 @@ impl Eq for Clause {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Literal {
-    positive: bool,
+    pub positive: bool,
     pub variable: usize,
-    pub assignment: Option<Assignment>,
+    pub assignment: Assignment,
 }
 
 impl Literal {
@@ -172,6 +170,12 @@ impl Literal {
     pub fn less(&self, other: &Literal, vars: &Vec<usize>) -> bool {
         vars[self.variable] < vars[other.variable]
     }
+
+    pub fn is_inverse(&self, other: &Literal) -> bool {
+        self.positive != other.positive
+            && self.assignment == other.assignment
+            && self.variable == other.variable
+    }
 }
 
 impl fmt::Display for Literal {
@@ -180,15 +184,16 @@ impl fmt::Display for Literal {
         if !self.positive {
             s.push_str("¬");
         }
-        match &self.assignment {
-            Some(a) => write!(
+        if self.assignment.0.is_empty() {
+            write!(f, "{}{}", s, self.variable)
+        } else {
+            write!(
                 f,
                 "{}{}[{}]",
                 s,
                 self.variable,
-                assignment_colour().paint(a.to_string())
-            ),
-            None => write!(f, "{}{}", s, self.variable),
+                assignment_colour().paint(self.assignment.to_string())
+            )
         }
     }
 }
