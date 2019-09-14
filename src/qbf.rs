@@ -31,30 +31,36 @@ impl QBF {
     pub fn add_clause(&mut self, clause: &Clause) -> bool {
         let Clause(literals) = clause;
         for l in literals {
-            if l.var() >= self.vars.len() {
+            if l.variable >= self.vars.len() {
                 return false;
             }
         }
         let CNF(clauses) = &mut self.cnf;
-        clauses.push(clause.clone());
+        clauses.insert(clause.clone());
         true
     }
 
-    pub fn remove_clause(&mut self, index: usize) -> bool {
+    pub fn remove_clause(&mut self, clause: &Clause) -> bool {
         let CNF(clauses) = &mut self.cnf;
-        if clauses.len() - 1 < index {
-            return false;
-        }
-        // TODO Clause removal
-        true
+        clauses.remove(clause)
     }
 
-    pub fn remove_literal(&mut self, clause_index: usize, literal_index: usize) -> bool {
-        let CNF(clauses) = &mut self.cnf;
-        if (clauses.len() <= clause_index) || (clauses[clause_index].0.len() <= literal_index) {
-            return false;
+    pub fn remove_literal(&mut self, mut clause: Clause, literal: &Literal) -> bool {
+        {
+            let Clause(literals) = &clause;
+            if !literals.contains(literal) {
+                return false;
+            }
+            if !self.remove_clause(&clause) {
+                return false;
+            }
         }
-        // TODO Literal removal
+        let Clause(literals) = &mut clause;
+        if !literals.remove(literal) {
+            panic!("This should be impossible");
+        }
+        let CNF(clauses) = &mut self.cnf;
+        clauses.insert(clause);
         true
     }
 }
@@ -87,25 +93,23 @@ impl fmt::Display for QBF {
 }
 
 #[derive(Clone, Debug)]
-pub struct CNF(pub Vec<Clause>);
+pub struct CNF(pub HashSet<Clause>);
 
 impl fmt::Display for CNF {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let CNF(clauses) = self;
         let mut s = String::new();
-        for i in 0..(clauses.len() as isize) - 1 {
-            s.push_str(&clauses[i as usize].to_string());
-            s.push_str("∨");
-        }
-        match clauses.last() {
-            Some(c) => s.push_str(&c.to_string()),
-            _ => {}
+        for (i, c) in clauses.iter().enumerate() {
+            //TODO make into function or macro ???
+            s.push_str(&c.to_string());
+            if i < clauses.len() - 1 {
+                s.push_str("∨");
+            }
         }
         write!(f, "{}", s)
     }
 }
 
-// TODO implement eq hash
 #[derive(Clone, Debug)]
 pub struct Clause(pub HashSet<Literal>);
 
@@ -126,50 +130,65 @@ impl fmt::Display for Clause {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct LabeledVariable {
-    pub variable: usize,
-    pub assignment: Option<Assignment>,
-}
-
-impl fmt::Display for LabeledVariable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let LabeledVariable {
-            variable,
-            assignment,
-        } = self;
-        match assignment {
-            Some(a) => write!(
-                f,
-                "{}[{}]",
-                variable,
-                assignment_colour().paint(a.to_string())
-            ),
-            None => write!(f, "{}", variable),
+impl Hash for Clause {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let Clause(literals) = self;
+        for i in literals.iter() {
+            i.hash(state);
         }
     }
 }
 
+impl PartialEq for Clause {
+    fn eq(&self, other: &Self) -> bool {
+        let Clause(s) = self;
+        let Clause(o) = other;
+        if s.len() != o.len() {
+            return false;
+        }
+        for i in s.iter() {
+            if !o.contains(i) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+impl Eq for Clause {}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum Literal {
-    Positive(LabeledVariable),
-    Negative(LabeledVariable),
+pub struct Literal {
+    positive: bool,
+    pub variable: usize,
+    pub assignment: Option<Assignment>,
 }
 
 impl Literal {
-    pub fn var(&self) -> usize {
-        match self {
-            Literal::Positive(l) => l.variable,
-            Literal::Negative(l) => l.variable,
-        }
+    pub fn is_existential(&self, vars: &Vec<usize>) -> bool {
+        vars[self.variable] % 2 == 0
+    }
+
+    pub fn less(&self, other: &Literal, vars: &Vec<usize>) -> bool {
+        vars[self.variable] < vars[other.variable]
     }
 }
 
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Literal::Positive(x) => write!(f, "{}", x),
-            Literal::Negative(x) => write!(f, "¬{}", x),
+        let mut s = String::new();
+        if !self.positive {
+            s.push_str("¬");
+        }
+        match &self.assignment {
+            Some(a) => write!(
+                f,
+                "{}{}[{}]",
+                s,
+                self.variable,
+                assignment_colour().paint(a.to_string())
+            ),
+            None => write!(f, "{}{}", s, self.variable),
         }
     }
 }

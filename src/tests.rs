@@ -1,5 +1,13 @@
 use crate::qbf::{Assignment, Clause, LabeledVariable, Literal, CNF, QBF};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
+fn lv2h(mut lv: Vec<Literal>) -> HashSet<Literal> {
+    lv.drain(0..).collect()
+}
+
+fn cv2h(mut cv: Vec<Clause>) -> HashSet<Clause> {
+    cv.drain(0..).collect()
+}
 
 #[test]
 fn display() {
@@ -14,11 +22,12 @@ fn display() {
         variable: 3,
         assignment: Some(Assignment(map)),
     });
-    /*
     let qbf = QBF {
         vars: vec![1, 2, 4, 2],
-        cnf: CNF(vec![Clause(vec![lit1, lit2]), Clause(vec![])]),
+        cnf: CNF(cv2h(vec![
+            Clause(lv2h(vec![lit1, lit2])),
+            Clause(lv2h(vec![])),
+        ])),
     };
     println!("{}", qbf);
-    */
 }
