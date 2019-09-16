@@ -1,4 +1,5 @@
-use crate::qbf::{Clause, Literal, CNF, QBF};
+use crate::qbf::{Clause, CNF, QBF};
+use crate::literal::Literal;
 use std::collections::{HashMap, HashSet};
 
 /*
@@ -20,33 +21,25 @@ impl Change {
 */
 
 enum QRATRule {
-    UnitPropagation(Literal),
+    UnitPropagation,
+    ClauseRemoval(Clause),
 }
 
 impl QRATRule {
-    pub fn apply(&self, formula: QBF) -> Option<QBF> {
+    pub fn apply(&self, mut formula: QBF) -> Option<QBF> {
         match self {
-            QRATRule::UnitPropagation(literal) => QRATRule::unit_propagate(literal, formula), // TODO rest of the rules
+            QRATRule::UnitPropagation => {
+                formula.cnf.implies_bot();
+                return Some(formula);
+            } // TODO rest of the rules
+            QRATRule::ClauseRemoval(clause) => {
+                if formula.remove_clause(clause) {
+                    return Some(formula);
+                } else {
+                    return None;
+                }
+            }
         }
-    }
-
-    fn unit_propagate(literal: &Literal, formula: QBF) -> Option<QBF> {
-        let CNF(mut clauses) = formula.cnf;
-        let mut unit_clause = HashSet::new();
-        unit_clause.insert(literal.clone());
-        if !clauses.contains(&Clause(unit_clause)) {
-            return None;
-        }
-        let mut new_clauses = HashSet::new();
-        for clause in clauses.drain() {
-            let Clause(mut literals) = clause;
-            literals.retain(|literal| !literal.is_inverse(literal));
-            new_clauses.insert(Clause(literals));
-        }
-        return Some(QBF {
-            vars: formula.vars,
-            cnf: CNF(new_clauses),
-        });
     }
 }
 
@@ -100,7 +93,7 @@ impl AllExpResRule {
                         map.insert(l2.variable, !l2.positive);
                     }
                 }
-                new_literals.insert(l1.clone()); // TODO add assignment
+                new_literals.insert(l1.clone()); // TODO check for no assignment
             }
         }
         if !formula.add_clause(&Clause(new_literals)) {

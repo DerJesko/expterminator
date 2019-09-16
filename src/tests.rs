@@ -1,4 +1,5 @@
-use crate::qbf::{Assignment, Clause, Literal, CNF, QBF};
+use crate::literal::{Assignment, Literal};
+use crate::qbf::{Clause, CNF, QBF};
 use std::collections::{HashMap, HashSet};
 
 fn lv2h(mut lv: Vec<Literal>) -> HashSet<Literal> {
