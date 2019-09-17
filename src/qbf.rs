@@ -3,12 +3,17 @@ use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-pub fn pop<T>(set: &mut HashSet<T>) -> T
+pub fn pop<T>(set: &mut HashSet<T>) -> Option<T>
 where
-    T: Eq + Clone + std::hash::Hash,
+    T: Eq + Clone + Hash,
 {
-    let top = set.iter().next().cloned().unwrap();
-    set.remove(&top);
+    let top = set.iter().next().cloned();
+    match &top {
+        Some(t) => {
+            set.remove(&t);
+        }
+        None => {}
+    }
     top
 }
 
@@ -45,16 +50,6 @@ impl QBF {
             clauses.insert(Clause(h));
         }
         CNF(clauses).implies_bot()
-    }
-
-    fn remove_universal_literals(&mut self) {
-        let CNF(clauses) = &mut self.cnf;
-        let mut new_clauses = HashSet::new();
-        for mut clause in clauses.drain() {
-            clause.remove_universal_literals(&self.vars);
-            new_clauses.insert(clause);
-        }
-        self.cnf = CNF(new_clauses);
     }
 
     fn is_qrat_literal(&self, clause: &Clause, literal: &Literal) -> bool {
@@ -159,8 +154,8 @@ impl CNF {
     fn possible_resolution_goal(&self, mut jumpoff_points: HashSet<Literal>) -> HashSet<Literal> {
         let CNF(clauses) = self;
         let mut checked_jumpoff_points = HashSet::new();
-        while !jumpoff_points.is_empty() {
-            let check = pop(&mut jumpoff_points).invert();
+        while let Some(mut check) = pop(&mut jumpoff_points) {
+            check = check.invert();
             for clause in clauses {
                 let Clause(literals) = clause;
                 if literals.contains(&check) {
@@ -201,7 +196,7 @@ impl CNF {
             let Clause(literals) = clause;
             if let Some(literal) = literals.iter().next() {
                 self.remove_clauses_containing(literal);
-                self.remove_literals(literal);
+                self.remove_literal_occurences(literal);
                 if self.contains_bot() {
                     return true;
                 }
@@ -236,11 +231,24 @@ impl CNF {
         true
     }
 
-    pub fn remove_literals(&mut self, literal: &Literal) {
+    pub fn retain_literals<F>(&mut self, f: &F)
+    where
+        F: Fn(&Literal) -> bool,
+    {
         let CNF(clauses) = self;
         let mut new_clauses = HashSet::new();
         for mut clause in clauses.drain() {
-            clause.0.retain(|lit| lit == literal);
+            clause.0.retain(f);
+            new_clauses.insert(clause);
+        }
+        self.0 = new_clauses;
+    }
+
+    pub fn remove_literal_occurences(&mut self, literal: &Literal) {
+        let CNF(clauses) = self;
+        let mut new_clauses = HashSet::new();
+        for mut clause in clauses.drain() {
+            clause.0.remove(literal);
             new_clauses.insert(clause);
         }
         self.0 = new_clauses;
@@ -254,17 +262,6 @@ impl Clause {
     fn is_unit(&self) -> bool {
         let Clause(literals) = self;
         literals.len() == 1
-    }
-
-    fn remove_universal_literals(&mut self, vars: &Vec<usize>) {
-        let Clause(literals) = self;
-        let mut new_literals = HashSet::new();
-        for literal in literals.drain() {
-            if literal.is_existential(vars) {
-                new_literals.insert(literal);
-            }
-        }
-        self.0 = new_literals;
     }
 
     fn outer_resolvent(self, l: Literal, c2: Clause, vars: &Vec<usize>) -> Option<Clause> {

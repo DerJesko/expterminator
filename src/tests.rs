@@ -1,13 +1,14 @@
 use crate::literal::{Assignment, Literal};
 use crate::qbf::{Clause, CNF, QBF};
 use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 
-fn lv2h(mut lv: Vec<Literal>) -> HashSet<Literal> {
-    lv.drain(0..).collect()
-}
-
-fn cv2h(mut cv: Vec<Clause>) -> HashSet<Clause> {
-    cv.drain(0..).collect()
+// vector to hash
+fn v2h<T>(mut v: Vec<T>) -> HashSet<T>
+where
+    T: Hash + Eq,
+{
+    v.drain(0..).collect()
 }
 
 #[test]
@@ -27,9 +28,9 @@ fn display() {
     };
     let qbf = QBF {
         vars: vec![1, 2, 4, 2],
-        cnf: CNF(cv2h(vec![
-            Clause(lv2h(vec![lit1, lit2])),
-            Clause(lv2h(vec![])),
+        cnf: CNF(v2h(vec![
+            Clause(v2h(vec![lit1, lit2])),
+            Clause(v2h(vec![])),
         ])),
     };
     println!("{}", qbf);

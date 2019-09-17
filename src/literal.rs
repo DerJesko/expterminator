@@ -1,5 +1,6 @@
+use crate::qbf::{Clause, CNF, QBF};
 use ansi_term::Colour::RGB;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -15,6 +16,27 @@ pub struct Literal {
 }
 
 impl Literal {
+    pub fn depends_on(&self, universal: &Literal, mut formula: QBF) -> bool {
+        // TODO check shit
+        let mut jumpoff_points = HashSet::new();
+        let QBF { mut cnf, vars } = formula;
+        let CNF(clauses) = &cnf;
+        let relevant_literal =
+            |literal: &Literal| literal.is_existential(&vars) && universal.less(literal, &vars);
+        for clause in clauses {
+            let Clause(literals) = clause;
+            if literals.contains(universal) {
+                for e in literals.iter() {
+                    if relevant_literal(e) {
+                        jumpoff_points.insert(e.clone());
+                    }
+                }
+            }
+        }
+        cnf.retain_literals(&relevant_literal);
+        true
+    }
+
     pub fn var_eq(&self, other: &Literal) -> bool {
         self.variable == other.variable && self.assignment == other.assignment
     }
