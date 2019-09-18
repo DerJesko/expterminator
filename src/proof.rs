@@ -1,28 +1,12 @@
-use crate::qbf::{Clause, CNF, QBF};
 use crate::literal::Literal;
+use crate::qbf::{Clause, CNF, QBF};
 use std::collections::{HashMap, HashSet};
-
-/*
-enum Change {
-    ClauseAddition(Clause),          // Clause which is to be added
-    ClauseRemoval(Clause),           // Clause which is to be removed
-    LiteralRemoval(Clause, Literal), // Clause out of Literal is to be removed
-}
-
-impl Change {
-    fn apply(&self, formula: &mut QBF) -> bool {
-        match self {
-            Change::ClauseAddition(c) => formula.add_clause(c),
-            Change::ClauseRemoval(c) => formula.remove_clause(c),
-            Change::LiteralRemoval(c, l) => formula.remove_literal(c.clone(), l),
-        }
-    }
-}
-*/
 
 enum QRATRule {
     UnitPropagation,
+    AddQRAT(Clause),
     ClauseRemoval(Clause),
+    RemoveQRATLiteral(Clause, Literal),
 }
 
 impl QRATRule {
@@ -32,12 +16,34 @@ impl QRATRule {
                 formula.cnf.implies_bot();
                 return Some(formula);
             } // TODO rest of the rules
+            QRATRule::AddQRAT(clause) => {
+                formula.cnf.0.insert(clause.clone());
+                if formula.is_qrat_clause(&clause) {
+                    return Some(formula);
+                }
+                return None;
+            }
             QRATRule::ClauseRemoval(clause) => {
                 if formula.remove_clause(clause) {
                     return Some(formula);
-                } else {
-                    return None;
                 }
+                return None;
+            }
+            QRATRule::RemoveQRATLiteral(clause, literal) => {
+                if formula.is_qrat_literal(&clause, &literal) {
+                    let QBF { cnf, vars } = formula;
+                    let CNF(mut clauses) = cnf;
+                    let Clause(mut literals) = clause.clone();
+
+                    if clauses.remove(&clause) && literals.remove(&literal) {
+                        clauses.insert(Clause(literals));
+                        return Some(QBF {
+                            cnf: CNF(clauses),
+                            vars,
+                        });
+                    }
+                }
+                return None;
             }
         }
     }

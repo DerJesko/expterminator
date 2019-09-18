@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-pub fn pop<T>(set: &mut HashSet<T>) -> Option<T>
+fn pop<T>(set: &mut HashSet<T>) -> Option<T>
 where
     T: Eq + Clone + Hash,
 {
@@ -24,6 +24,26 @@ pub struct QBF {
 }
 
 impl QBF {
+    pub fn depend_on(self, universal: &Literal) -> HashSet<Literal> {
+        // TODO check shit
+        let mut jumpoff_points = HashSet::new();
+        let QBF { mut cnf, vars } = self;
+        let CNF(clauses) = &cnf;
+        let relevant_literal =
+            |literal: &Literal| literal.is_existential(&vars) && universal.less(literal, &vars);
+        for clause in clauses {
+            let Clause(literals) = clause;
+            if literals.contains(universal) {
+                for e in literals.iter() {
+                    if relevant_literal(e) {
+                        jumpoff_points.insert(e.clone());
+                    }
+                }
+            }
+        }
+        cnf.retain_literals(&relevant_literal);
+        cnf.possible_resolution_goal(jumpoff_points)
+    }
     fn quantifiers(&self) -> Vec<Vec<usize>> {
         let mut quantifiers: Vec<Vec<usize>> = vec![];
         for i in 0..self.vars.len() {
@@ -34,9 +54,7 @@ impl QBF {
         }
         quantifiers
     }
-}
 
-impl QBF {
     // implies by unit propagation
     pub fn implies(self, clause: Clause) -> bool {
         let Clause(literals) = clause;
@@ -52,7 +70,7 @@ impl QBF {
         CNF(clauses).implies_bot()
     }
 
-    fn is_qrat_literal(&self, clause: &Clause, literal: &Literal) -> bool {
+    pub fn is_qrat_literal(&self, clause: &Clause, literal: &Literal) -> bool {
         let CNF(mut clauses) = self.cnf.clone();
         if !clauses.remove(clause) {
             return false;
@@ -75,7 +93,7 @@ impl QBF {
         true
     }
 
-    fn is_qrat_clause(&self, clause: &Clause) -> bool {
+    pub fn is_qrat_clause(&self, clause: &Clause) -> bool {
         // TODO Check shit
         let Clause(literals) = clause;
         for l in literals {
@@ -101,7 +119,7 @@ impl QBF {
         self.cnf.remove_clause(clause)
     }
 
-    pub fn remove_literal(&mut self, mut clause: Clause, literal: &Literal) -> bool {
+    pub fn remove_literal(&mut self, clause: Clause, literal: &Literal) -> bool {
         self.cnf.remove_literal(clause, literal)
     }
 }
@@ -151,7 +169,10 @@ impl fmt::Display for CNF {
 }
 
 impl CNF {
-    fn possible_resolution_goal(&self, mut jumpoff_points: HashSet<Literal>) -> HashSet<Literal> {
+    pub fn possible_resolution_goal(
+        &self,
+        mut jumpoff_points: HashSet<Literal>,
+    ) -> HashSet<Literal> {
         let CNF(clauses) = self;
         let mut checked_jumpoff_points = HashSet::new();
         while let Some(mut check) = pop(&mut jumpoff_points) {
@@ -204,7 +225,7 @@ impl CNF {
                 println!("This should be impossible to reach");
             }
         }
-        false
+        self.contains_bot()
     }
 
     pub fn remove_clause(&mut self, clause: &Clause) -> bool {
