@@ -67,7 +67,8 @@ impl QBF {
             h.insert(l.invert());
             clauses.insert(Clause(h));
         }
-        CNF(clauses).implies_bot()
+        let mut cnf = CNF(clauses);
+        cnf.implies_bot()
     }
 
     pub fn is_qrat_literal(&self, clause: &Clause, literal: &Literal) -> bool {
@@ -201,28 +202,30 @@ impl CNF {
         clauses.retain(|clause| !clause.0.contains(literal));
     }
 
-    fn contains_unit_clause(&self) -> Option<Clause> {
+    fn contains_unchecked_unit_clause(&self, checked_clauses: &HashSet<Clause>) -> Option<Clause> {
         let CNF(clauses) = self;
         for c in clauses {
-            if c.is_unit() {
+            if c.is_unit() && !checked_clauses.contains(c) {
                 return Some(c.clone());
             }
         }
         None
     }
 
+    // TODO optimize
     // Apply unit propagation until it cannot be done anymore or an empty clause is reached
     pub fn implies_bot(&mut self) -> bool {
-        while let Some(clause) = self.contains_unit_clause() {
+        let mut checked_clauses = HashSet::new();
+        while let Some(clause) = self.contains_unchecked_unit_clause(&checked_clauses) {
+            checked_clauses.insert(clause.clone());
             let Clause(literals) = clause;
             if let Some(literal) = literals.iter().next() {
-                self.remove_clauses_containing(literal);
-                self.remove_literal_occurences(literal);
+                self.remove_literal_occurences(&(literal.clone().invert()));
                 if self.contains_bot() {
                     return true;
                 }
             } else {
-                println!("This should be impossible to reach");
+                panic!("This should be impossible to reach");
             }
         }
         self.contains_bot()
@@ -285,7 +288,12 @@ impl Clause {
         literals.len() == 1
     }
 
-    fn outer_resolvent(self, l: Literal, c2: Clause, vars: &Vec<usize>) -> Option<Clause> {
+    pub(crate) fn outer_resolvent(
+        self,
+        l: Literal,
+        c2: Clause,
+        vars: &Vec<usize>,
+    ) -> Option<Clause> {
         let l_inv = l.clone().invert();
         let Clause(mut literals1) = self;
         let Clause(mut literals2) = c2;
@@ -293,8 +301,19 @@ impl Clause {
             return None;
         }
         literals2.retain(|lit| lit.less_equal(&l, vars));
-        literals1.union(&literals2);
+        for l in literals2 {
+            literals1.insert(l);
+        }
         Some(Clause(literals1))
+    }
+
+    pub fn hash_helper(&self) -> usize {
+        let Clause(literals) = self;
+        let mut accu = 1;
+        for l in literals {
+            accu *= (l.hash_helper() + 1);
+        }
+        accu
     }
 }
 
@@ -317,10 +336,7 @@ impl fmt::Display for Clause {
 
 impl Hash for Clause {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let Clause(literals) = self;
-        for i in literals.iter() {
-            i.hash(state);
-        }
+        self.hash_helper().hash(state);
     }
 }
 

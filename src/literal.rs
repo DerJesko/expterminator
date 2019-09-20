@@ -40,6 +40,14 @@ impl Literal {
         self.positive = !self.positive;
         self
     }
+
+    pub(crate) fn hash_helper(&self) -> usize {
+        if self.positive {
+            (self.assignment.hash_helper() + 1) * self.variable
+        } else {
+            (self.assignment.hash_helper() + 1) * self.variable + 1
+        }
+    }
 }
 
 impl fmt::Display for Literal {
@@ -65,6 +73,21 @@ impl fmt::Display for Literal {
 #[derive(Clone, Debug)]
 pub struct Assignment(pub HashMap<usize, bool>);
 
+impl Assignment {
+    fn hash_helper(&self) -> usize {
+        let Assignment(map) = self;
+        let mut accu = 0;
+        for (key, val) in map {
+            if *val {
+                accu += 2 * key + 1;
+            } else {
+                accu += 2 * key;
+            }
+        }
+        accu
+    }
+}
+
 impl fmt::Display for Assignment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let Assignment(map) = self;
@@ -84,11 +107,7 @@ impl fmt::Display for Assignment {
 
 impl Hash for Assignment {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let Assignment(map) = self;
-        for (key, val) in map.iter() {
-            key.hash(state);
-            val.hash(state);
-        }
+        self.hash_helper().hash(state);
     }
 }
 
