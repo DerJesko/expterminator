@@ -1,5 +1,6 @@
 extern crate ansi_term;
 
+#[macro_use]
 mod qbf;
 mod proof;
 mod literal;

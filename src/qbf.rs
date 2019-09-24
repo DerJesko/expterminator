@@ -1,5 +1,5 @@
-use crate::literal::Literal;
-use std::collections::HashSet;
+use crate::literal::{Assignment, Literal};
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -17,6 +17,19 @@ where
     top
 }
 
+#[macro_export]
+macro_rules! h {
+    ( $( $x:expr ),* ) => {
+        {
+            let mut temp_set = HashSet::new();
+            $(
+                temp_set.insert($x);
+            )*
+            temp_set
+        }
+    };
+}
+
 #[derive(Clone, Debug)]
 pub struct QBF {
     pub vars: Vec<usize>,
@@ -24,8 +37,76 @@ pub struct QBF {
 }
 
 impl QBF {
-    pub fn depend_on(self, universal: &Literal) -> HashSet<Literal> {
-        // TODO check shit
+    pub fn axiom(&self, clause: &Clause) -> Option<Clause> {
+        let CNF(clauses) = &self.cnf;
+        if !clauses.contains(clause) {
+            return None;
+        }
+        let Clause(literals) = clause;
+        let mut new_literals = HashSet::new();
+        for l1 in literals.iter() {
+            if l1.is_existential(&self.vars) {
+                let mut map = HashMap::new();
+                for l2 in literals.iter() {
+                    if !l2.is_existential(&self.vars) && l2.less(l1, &self.vars) {
+                        map.insert(l2.variable, !l2.positive);
+                    }
+                }
+                let mut new_literal = l1.clone();
+                new_literal.assignment = Assignment(map);
+                new_literals.insert(new_literal); // TODO check for no assignment
+            }
+        }
+        Some(Clause(new_literals))
+    }
+
+    pub fn resolution(
+        &self,
+        mut c1: Clause,
+        l1: &Literal,
+        mut c2: Clause,
+        additional_clauses: &HashSet<Clause>,
+    ) -> Option<Clause> {
+        let CNF(clauses) = &self.cnf;
+
+        {
+            let Clause(literals1) = &mut c1;
+            let Clause(literals2) = &mut c2;
+            if !literals1.remove(&l1) || !literals2.remove(&l1.clone().invert()) {
+                return None;
+            }
+        }
+        if !(clauses.contains(&c1) || additional_clauses.contains(&c1))
+            || !(clauses.contains(&c2) || additional_clauses.contains(&c2))
+        {
+            return None;
+        }
+
+        let Clause(mut literals1) = c1;
+        let Clause(mut literals2) = c2;
+        for l in literals2.drain() {
+            literals1.insert(l);
+        }
+        Some(Clause(literals1))
+    }
+
+    pub fn depend_on(self, universal: Literal) -> HashSet<Literal> {
+        let u = self
+            .clone()
+            .universal_possible_resolution_goal(&universal.clone());
+        let u_inv = self.universal_possible_resolution_goal(&universal.invert());
+        let mut result = HashSet::new();
+        for l in u {
+            if u_inv.contains(&l.clone().invert()) {
+                result.insert(l.clone());
+                result.insert(l.invert());
+            }
+        }
+        result
+    }
+
+    pub fn universal_possible_resolution_goal(self, universal: &Literal) -> HashSet<Literal> {
+        // TODO check shit & test
         let mut jumpoff_points = HashSet::new();
         let QBF { mut cnf, vars } = self;
         let CNF(clauses) = &cnf;
@@ -278,6 +359,24 @@ impl CNF {
         self.0 = new_clauses;
     }
 }
+
+impl PartialEq for CNF {
+    fn eq(&self, other: &Self) -> bool {
+        let CNF(s) = self;
+        let CNF(o) = other;
+        if s.len() != o.len() {
+            return false;
+        }
+        for i in s.iter() {
+            if !o.contains(i) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+impl Eq for CNF {}
 
 #[derive(Clone, Debug)]
 pub struct Clause(pub HashSet<Literal>);

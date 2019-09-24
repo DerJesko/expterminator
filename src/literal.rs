@@ -1,4 +1,5 @@
 use ansi_term::Colour::RGB;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -22,12 +23,22 @@ impl Literal {
         vars[self.variable] % 2 == 0
     }
 
+    pub fn cmp(&self, other: &Literal, vars: &Vec<usize>) -> Ordering {
+        vars[self.variable].cmp(&vars[other.variable])
+    }
+
     pub fn less(&self, other: &Literal, vars: &Vec<usize>) -> bool {
-        vars[self.variable] < vars[other.variable]
+        match self.cmp(other, vars) {
+            Ordering::Less => true,
+            _ => false,
+        }
     }
 
     pub fn less_equal(&self, other: &Literal, vars: &Vec<usize>) -> bool {
-        vars[self.variable] <= vars[other.variable]
+        match self.cmp(other, vars) {
+            Ordering::Greater => false,
+            _ => true,
+        }
     }
 
     pub fn is_inverse(&self, other: &Literal) -> bool {
@@ -39,6 +50,15 @@ impl Literal {
     pub fn invert(mut self) -> Literal {
         self.positive = !self.positive;
         self
+    }
+
+    pub fn purify(mut self) -> Literal {
+        self.assignment = Assignment(HashMap::new());
+        self
+    }
+
+    pub fn is_pure(&self) -> bool {
+        self.assignment.0.len() == 0
     }
 
     pub(crate) fn hash_helper(&self) -> usize {

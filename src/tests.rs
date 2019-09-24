@@ -1,20 +1,9 @@
 use crate::literal::{Assignment, Literal};
+//use crate::proof::AllExpResRule;
 use crate::qbf::{Clause, CNF, QBF};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
-
-macro_rules! h {
-    ( $( $x:expr ),* ) => {
-        {
-            let mut temp_set = HashSet::new();
-            $(
-                temp_set.insert($x);
-            )*
-            temp_set
-        }
-    };
-}
 
 fn create1() -> QBF {
     let lit1 = Literal {
@@ -124,12 +113,79 @@ fn create4() -> QBF {
     }
 }
 
+fn create5() -> QBF {
+    let u = Literal {
+        positive: false,
+        variable: 1,
+        assignment: Assignment(HashMap::new()),
+    };
+    let x = Literal {
+        positive: true,
+        variable: 2,
+        assignment: Assignment(HashMap::new()),
+    };
+    let v = Literal {
+        positive: true,
+        variable: 3,
+        assignment: Assignment(HashMap::new()),
+    };
+    let y = Literal {
+        positive: false,
+        variable: 4,
+        assignment: Assignment(HashMap::new()),
+    };
+    QBF {
+        vars: vec![0, 1, 2, 3, 4],
+        cnf: CNF(h![Clause(h![u, x, v, y])]),
+    }
+}
+
+fn create6() -> Clause {
+    let u = Literal {
+        positive: false,
+        variable: 1,
+        assignment: Assignment(HashMap::new()),
+    };
+    let mut x = Literal {
+        positive: true,
+        variable: 2,
+        assignment: Assignment(HashMap::new()),
+    };
+    let v = Literal {
+        positive: true,
+        variable: 3,
+        assignment: Assignment(HashMap::new()),
+    };
+    let mut y = Literal {
+        positive: false,
+        variable: 4,
+        assignment: Assignment(HashMap::new()),
+    };
+    let mut x_map = HashMap::new();
+    x_map.insert(1, true);
+    x = Literal {
+        positive: x.positive,
+        variable: x.variable,
+        assignment: Assignment(x_map),
+    };
+    let mut y_map = HashMap::new();
+    y_map.insert(1, true);
+    y_map.insert(3, false);
+    y = Literal {
+        positive: y.positive,
+        variable: y.variable,
+        assignment: Assignment(y_map),
+    };
+    Clause(h![x, y])
+}
+
 #[test]
 fn display() {
     println!("{}", create1());
     println!("{}", create2());
     println!("{}", create3());
     println!("{}", create4());
+    println!("{}", create5());
 }
 
 #[test]
@@ -138,7 +194,13 @@ fn implies_bot() {
     assert!(create2().cnf.implies_bot());
     assert!(!create3().cnf.implies_bot());
 }
-
+#[test]
+fn axiom() {
+    let qbf = create5();
+    let clause = qbf.axiom(qbf.cnf.0.iter().next().unwrap()).unwrap();
+    println!("{}", clause);
+    assert_eq!(clause, create6());
+}
 #[test]
 fn clause_eq() {
     let a = Literal {
