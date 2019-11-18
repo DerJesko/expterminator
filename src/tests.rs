@@ -141,19 +141,9 @@ fn create5() -> QBF {
 }
 
 fn create6() -> Clause {
-    let u = Literal {
-        positive: false,
-        variable: 1,
-        assignment: Assignment(HashMap::new()),
-    };
     let mut x = Literal {
         positive: true,
         variable: 2,
-        assignment: Assignment(HashMap::new()),
-    };
-    let v = Literal {
-        positive: true,
-        variable: 3,
         assignment: Assignment(HashMap::new()),
     };
     let mut y = Literal {

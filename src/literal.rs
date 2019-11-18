@@ -27,6 +27,14 @@ impl Literal {
         vars[self.variable].cmp(&vars[other.variable])
     }
 
+    pub fn cmp_inv(&self, other: &Literal, vars: &Vec<usize>) -> Ordering {
+        match self.cmp(other, vars) {
+            Ordering::Less => Ordering::Greater,
+            Ordering::Greater => Ordering::Less,
+            Ordering::Equal => Ordering::Equal,
+        }
+    }
+
     pub fn less(&self, other: &Literal, vars: &Vec<usize>) -> bool {
         match self.cmp(other, vars) {
             Ordering::Less => true,

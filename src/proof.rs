@@ -58,21 +58,6 @@ struct AllExpResProof {
     initial_formula: QBF,
 }
 impl AllExpResProof {
-    /*
-    pub fn apply(&self, mut formula: QBF) -> Option<QBF> {
-        for r in &self.rules {
-            match r.apply(&formula) {
-                Some(clause) => {
-                    //TODO stuff
-                    return None;
-                }
-                None => return None,
-            }
-        }
-        Some(formula)
-    }
-    */
-
     pub fn to_qrat(self) -> Option<QRATProof> {
         let mut result = Vec::new();
         let mut step_3 = Vec::new();
@@ -94,13 +79,16 @@ impl AllExpResProof {
                             }
                         }
                     }
-                    _ => {}
+                    None => {
+                        return None;
+                    }
                 },
-                _ => {}
+                AllExpResRule::Resolution(_, _, _) => {}
             }
         }
         // Step 2
-        let mut step_4 = Vec::new();
+        let mut step_4_literals = Vec::new();
+        let mut step_4_cnf = HashSet::new();
         for r in rules {
             match r {
                 AllExpResRule::Axiom(clause) => match self.initial_formula.axiom(clause) {
@@ -110,14 +98,17 @@ impl AllExpResProof {
                         for l in literals {
                             if !l.is_existential(&self.initial_formula.vars) {
                                 new_literals.insert(l.clone());
-                                step_4.push(l);
+                                step_4_literals.push(l);
                             }
                         }
-                        result.push(QRATRule::AddQRAT(Clause(new_literals)));
+                        result.push(QRATRule::AddQRAT(Clause(new_literals.clone())));
+                        step_4_cnf.insert(Clause(new_literals));
                     }
-                    _ => {}
+                    _ => {
+                        return None;
+                    }
                 },
-                _ => {}
+                AllExpResRule::Resolution(_, _, _) => {}
             }
         }
         // Step 3
@@ -128,8 +119,41 @@ impl AllExpResProof {
             result.push(QRATRule::ClauseRemoval(clause.clone()));
         }
         // Step 4
-        step_4.sort_by(|a,b| a.cmp(b,&self.initial_formula.vars));
+        step_4_literals.sort_by(|a, b| a.cmp_inv(b, &self.initial_formula.vars));
+        let mut already_removed = HashSet::new();
+        for l in step_4_literals {
+            if !already_removed.contains(l) {
+                for clause in &step_4_cnf {
+                    let Clause(literals) = clause;
+                    if literals.contains(&l) {
+                        result.push(QRATRule::ExtendedUniversalReduction(
+                            clause.clone(),
+                            l.clone(),
+                        ))
+                    }
+                }
+                already_removed.insert(l);
+            }
+        }
         // Step 5
+        for r in rules {
+            match r {
+                AllExpResRule::Resolution(clause1, literal, clause2) => {
+                    match self.initial_formula.resolution(
+                        clause1.clone(),
+                        literal,
+                        clause2.clone(),
+                        &step_4_cnf, // TODO this has to be modified before this step
+                    ) {
+                        Some(clause) => result.push(QRATRule::AddQRAT(clause)),
+                        None => {
+                            return None;
+                        }
+                    }
+                }
+                AllExpResRule::Axiom(_) => {}
+            }
+        }
         Some(QRATProof(result))
     }
     pub fn check(&self, mut formula: QBF) -> bool {
