@@ -1,5 +1,5 @@
-use crate::literal::{Assignment, Literal};
-use std::collections::{HashMap, HashSet};
+use crate::literal::QBFLiteral;
+use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -37,94 +37,6 @@ pub struct QBF {
 }
 
 impl QBF {
-    pub fn axiom(&self, clause: &Clause) -> Option<Clause> {
-        let CNF(clauses) = &self.cnf;
-        if !clauses.contains(clause) {
-            return None;
-        }
-        let Clause(literals) = clause;
-        let mut new_literals = HashSet::new();
-        for l1 in literals.iter() {
-            if l1.is_existential(&self.vars) {
-                let mut map = HashMap::new();
-                for l2 in literals.iter() {
-                    if !l2.is_existential(&self.vars) && l2.less(l1, &self.vars) {
-                        map.insert(l2.variable, !l2.positive);
-                    }
-                }
-                let mut new_literal = l1.clone();
-                new_literal.assignment = Assignment(map);
-                new_literals.insert(new_literal); // TODO check for no assignment
-            }
-        }
-        Some(Clause(new_literals))
-    }
-
-    pub fn resolution(
-        &self,
-        mut c1: Clause,
-        l1: &Literal,
-        mut c2: Clause,
-        additional_clauses: &HashSet<Clause>,
-    ) -> Option<Clause> {
-        let CNF(clauses) = &self.cnf;
-
-        {
-            let Clause(literals1) = &mut c1;
-            let Clause(literals2) = &mut c2;
-            if !literals1.remove(&l1) || !literals2.remove(&l1.clone().invert()) {
-                return None;
-            }
-        }
-        if !(clauses.contains(&c1) || additional_clauses.contains(&c1))
-            || !(clauses.contains(&c2) || additional_clauses.contains(&c2))
-        {
-            return None;
-        }
-
-        let Clause(mut literals1) = c1;
-        let Clause(mut literals2) = c2;
-        for l in literals2.drain() {
-            literals1.insert(l);
-        }
-        Some(Clause(literals1))
-    }
-
-    pub fn depend_on(self, universal: Literal) -> HashSet<Literal> {
-        let u = self
-            .clone()
-            .universal_possible_resolution_goal(&universal.clone());
-        let u_inv = self.universal_possible_resolution_goal(&universal.invert());
-        let mut result = HashSet::new();
-        for l in u {
-            if u_inv.contains(&l.clone().invert()) {
-                result.insert(l.clone());
-                result.insert(l.invert());
-            }
-        }
-        result
-    }
-
-    pub fn universal_possible_resolution_goal(self, universal: &Literal) -> HashSet<Literal> {
-        // TODO check shit & test
-        let mut jumpoff_points = HashSet::new();
-        let QBF { mut cnf, vars } = self;
-        let CNF(clauses) = &cnf;
-        let relevant_literal =
-            |literal: &Literal| literal.is_existential(&vars) && universal.less(literal, &vars);
-        for clause in clauses {
-            let Clause(literals) = clause;
-            if literals.contains(universal) {
-                for e in literals.iter() {
-                    if relevant_literal(e) {
-                        jumpoff_points.insert(e.clone());
-                    }
-                }
-            }
-        }
-        cnf.retain_literals(&relevant_literal);
-        cnf.possible_resolution_goal(jumpoff_points)
-    }
     fn quantifiers(&self) -> Vec<Vec<usize>> {
         let mut quantifiers: Vec<Vec<usize>> = vec![];
         for i in 0..self.vars.len() {
@@ -136,60 +48,10 @@ impl QBF {
         quantifiers
     }
 
-    // implies by unit propagation
-    pub fn implies(self, clause: Clause) -> bool {
-        let Clause(literals) = clause;
-        let CNF(mut clauses) = self.cnf;
-        for l in literals {
-            if l.variable >= clauses.len() {
-                return false;
-            }
-            let mut h = HashSet::new();
-            h.insert(l.invert());
-            clauses.insert(Clause(h));
-        }
-        let mut cnf = CNF(clauses);
-        cnf.implies_bot()
-    }
-
-    pub fn is_qrat_literal(&self, clause: &Clause, literal: &Literal) -> bool {
-        let CNF(mut clauses) = self.cnf.clone();
-        if !clauses.remove(clause) {
-            return false;
-        }
-        // TODO Check shit
-
-        for c in clauses {
-            match clause
-                .clone()
-                .outer_resolvent(literal.clone(), c, &self.vars)
-            {
-                Some(resolvent) => {
-                    if !self.clone().implies(resolvent) {
-                        return false;
-                    }
-                }
-                None => {}
-            }
-        }
-        true
-    }
-
-    pub fn is_qrat_clause(&self, clause: &Clause) -> bool {
-        // TODO Check shit
-        let Clause(literals) = clause;
-        for l in literals {
-            if l.is_existential(&self.vars) && self.is_qrat_literal(clause, l) {
-                return true;
-            }
-        }
-        false
-    }
-
     pub fn add_clause(&mut self, clause: &Clause) -> bool {
         let Clause(literals) = clause;
         for l in literals {
-            if l.variable >= self.vars.len() {
+            if l.variable() as usize >= self.vars.len() {
                 return false;
             }
         }
@@ -201,7 +63,7 @@ impl QBF {
         self.cnf.remove_clause(clause)
     }
 
-    pub fn remove_literal(&mut self, clause: Clause, literal: &Literal) -> bool {
+    pub fn remove_literal(&mut self, clause: Clause, literal: &QBFLiteral) -> bool {
         self.cnf.remove_literal(clause, literal)
     }
 }
@@ -253,8 +115,8 @@ impl fmt::Display for CNF {
 impl CNF {
     pub fn possible_resolution_goal(
         &self,
-        mut jumpoff_points: HashSet<Literal>,
-    ) -> HashSet<Literal> {
+        mut jumpoff_points: HashSet<QBFLiteral>,
+    ) -> HashSet<QBFLiteral> {
         let CNF(clauses) = self;
         let mut checked_jumpoff_points = HashSet::new();
         while let Some(mut check) = pop(&mut jumpoff_points) {
@@ -278,7 +140,7 @@ impl CNF {
         clauses.contains(&Clause(HashSet::new()))
     }
 
-    fn remove_clauses_containing(&mut self, literal: &Literal) {
+    fn remove_clauses_containing(&mut self, literal: &QBFLiteral) {
         let CNF(clauses) = self;
         clauses.retain(|clause| !clause.0.contains(literal));
     }
@@ -317,7 +179,7 @@ impl CNF {
         clauses.remove(clause)
     }
 
-    pub fn remove_literal(&mut self, mut clause: Clause, literal: &Literal) -> bool {
+    pub fn remove_literal(&mut self, mut clause: Clause, literal: &QBFLiteral) -> bool {
         {
             let Clause(literals) = &clause;
             if !literals.contains(literal) {
@@ -338,7 +200,7 @@ impl CNF {
 
     pub fn retain_literals<F>(&mut self, f: &F)
     where
-        F: Fn(&Literal) -> bool,
+        F: Fn(&QBFLiteral) -> bool,
     {
         let CNF(clauses) = self;
         let mut new_clauses = HashSet::new();
@@ -349,7 +211,7 @@ impl CNF {
         self.0 = new_clauses;
     }
 
-    pub fn remove_literal_occurences(&mut self, literal: &Literal) {
+    pub fn remove_literal_occurences(&mut self, literal: &QBFLiteral) {
         let CNF(clauses) = self;
         let mut new_clauses = HashSet::new();
         for mut clause in clauses.drain() {
@@ -379,7 +241,7 @@ impl PartialEq for CNF {
 impl Eq for CNF {}
 
 #[derive(Clone, Debug)]
-pub struct Clause(pub HashSet<Literal>);
+pub struct Clause(pub HashSet<QBFLiteral>);
 
 impl Clause {
     fn is_unit(&self) -> bool {
@@ -389,7 +251,7 @@ impl Clause {
 
     pub(crate) fn outer_resolvent(
         self,
-        l: Literal,
+        l: QBFLiteral,
         c2: Clause,
         vars: &Vec<usize>,
     ) -> Option<Clause> {
@@ -399,7 +261,7 @@ impl Clause {
         if !literals1.remove(&l) || !literals2.remove(&l_inv) {
             return None;
         }
-        literals2.retain(|lit| lit.less_equal(&l, vars));
+        literals2.retain(|lit| lit.leq_quant(&l, vars));
         for l in literals2 {
             literals1.insert(l);
         }
@@ -410,7 +272,7 @@ impl Clause {
         let Clause(literals) = self;
         let mut accu = 1;
         for l in literals {
-            accu *= (l.hash_helper() + 1);
+            accu = (accu * (l.hash_helper() + 7)) % 2147483647;
         }
         accu
     }

@@ -1,12 +1,21 @@
 # Read Me Or Don't, I Don't Care
 
+## Assumption
+
+The tool is written such that it assumes that the inputs are correct.
+It does not guarantee that it works properly if the inputs are broken.
+
 ## Usage
 
 ```expterminator a.qdimacs```
 and feed in the proof via `stdin` or
-```expterminator -p proof.exp a.qdimacs```
+```expterminator a.qdimacs a.proof```
 
-## Format
+## Format (QBF)
+
+[QDIMACS](http://www.qbflib.org/qdimacs.html)
+
+## Format (Forall-Exp+Res* Proof)
 
 Forall Expansion Resolution Proof Trace
 
@@ -50,15 +59,18 @@ applied to formulas of the QBF which will cause all literals in the generated
 clause to be annotated. Rule applications of resolution will alway apply to
 clauses generated in this proof.
 
+Also note that the indeces of the newly generated clauses have to start at 1
+and continue increasing one at a time.
+
 Here is the definition of the humaly readable FERP format:
 
 ```
 <trace>       = { <annotattion> } { <clause> }
-<annotattion> = "x" <vars> <vars> <literals>
+<annotattion> = "x" <vars> <vars> <literals> EOL
 <vars>        = { <pos> } "0"
 <literals>    = { <lit> } "0"
 <antecedents> = <pos> "0" | <pos> <pos> "0"
-<clause>      = <pos> <literals> <antecedents>
+<clause>      = <pos> <literals> <antecedents> EOL
 <lit>         = <pos> | <neg>
 <pos>         =  "1" |  "2" | .... | <max-idx>
 <neg>         = "-"<pos>

@@ -8,23 +8,57 @@ fn assignment_colour() -> ansi_term::Colour {
     RGB(100, 100, 100)
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Literal {
-    pub positive: bool,
-    pub variable: usize,
-    pub assignment: Assignment,
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct QBFLiteral {
+    pub literal: isize,
 }
 
+impl QBFLiteral {
+    pub fn variable(&self) -> isize {
+        self.literal.abs()
+    }
+
+    pub fn invert(&self) -> Self {
+        QBFLiteral {
+            literal: -self.literal,
+        }
+    }
+    pub fn var_eq(&self, other: &Self) -> bool {
+        self.variable() == other.variable()
+    }
+    pub fn leq_quant(&self, other: &Self, vars: &Vec<usize>) -> bool {
+        match self.cmp(other, vars) {
+            Ordering::Greater => false,
+            _ => true,
+        }
+    }
+
+    pub fn cmp(&self, other: &Self, vars: &Vec<usize>) -> Ordering {
+        vars[self.variable() as usize].cmp(&vars[other.variable() as usize])
+    }
+
+    pub fn hash_helper(&self) -> usize {
+        self.variable() as usize * 2 + if self.literal > 0 { 1 } else { 0 }
+    }
+}
+
+impl fmt::Display for QBFLiteral {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut s = String::new();
+        if self.literal < 0 {
+            s.push_str("¬");
+        }
+        write!(f, "{}{}", s, self.variable())
+    }
+}
+
+/*
 impl Literal {
     pub fn var_eq(&self, other: &Literal) -> bool {
         self.variable == other.variable && self.assignment == other.assignment
     }
     pub fn is_existential(&self, vars: &Vec<usize>) -> bool {
         vars[self.variable] % 2 == 0
-    }
-
-    pub fn cmp(&self, other: &Literal, vars: &Vec<usize>) -> Ordering {
-        vars[self.variable].cmp(&vars[other.variable])
     }
 
     pub fn cmp_inv(&self, other: &Literal, vars: &Vec<usize>) -> Ordering {
@@ -78,25 +112,6 @@ impl Literal {
     }
 }
 
-impl fmt::Display for Literal {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut s = String::new();
-        if !self.positive {
-            s.push_str("¬");
-        }
-        if self.assignment.0.is_empty() {
-            write!(f, "{}{}", s, self.variable)
-        } else {
-            write!(
-                f,
-                "{}{}[{}]",
-                s,
-                self.variable,
-                assignment_colour().paint(self.assignment.to_string())
-            )
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct Assignment(pub HashMap<usize, bool>);
@@ -163,3 +178,4 @@ impl PartialEq for Assignment {
 }
 
 impl Eq for Assignment {}
+*/

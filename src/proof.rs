@@ -1,4 +1,4 @@
-use crate::literal::{Assignment, Literal};
+use crate::literal::{AnnotatedLiteral, Assignment};
 use crate::qbf::{Clause, CNF, QBF};
 use std::collections::{HashMap, HashSet};
 
@@ -8,8 +8,8 @@ enum QRATRule {
     UnitPropagation,
     AddQRAT(Clause),
     ClauseRemoval(Clause),
-    RemoveQRATLiteral(Clause, Literal),
-    ExtendedUniversalReduction(Clause, Literal),
+    RemoveQRATLiteral(Clause, AnnotatedLiteral),
+    ExtendedUniversalReduction(Clause, AnnotatedLiteral),
 }
 
 impl QRATRule {
@@ -161,8 +161,8 @@ impl AllExpResProof {
     }
 }
 pub enum AllExpResRule {
-    Axiom(Clause),                       // Clause used for the axiom rule
-    Resolution(Clause, Literal, Clause), // (Clause, Literal) pairs used for resolution
+    Axiom(Clause),                                // Clause used for the axiom rule
+    Resolution(Clause, AnnotatedLiteral, Clause), // (Clause, Literal) pairs used for resolution
 }
 
 impl AllExpResRule {
