@@ -1,4 +1,5 @@
 use crate::literal::QBFLiteral;
+use crate::proof::AllExpResRule;
 use crate::qbf::{Clause, CNF, QBF};
 use std::collections::HashSet;
 
@@ -101,10 +102,14 @@ pub fn parse_qdimacs(qdimacs_string: String) -> (Vec<Clause>, QBF) {
 static ANNOTATIONS_BROKEN: &str = "the annotations of the proof file are broken";
 static RULE_BROKEN: &str = "the rule application part of the proof file is broken";
 
-pub fn parse_proof(qdimacs_string: String) {
+pub fn parse_proof(
+    qdimacs_string: String,
+) -> (Vec<usize>, Vec<Vec<isize>>, Vec<usize>, Vec<AllExpResRule>) {
     let mut lines = qdimacs_string.lines().peekable();
-    let mut new_vars = Vec::new();
+    let mut annotation_link = Vec::new();
+    let mut current_annotation = 0;
     let mut qbf_vars = Vec::new();
+    qbf_vars.push(0);
     let mut annotations = Vec::new();
     // Annotation Lines
     while lines.peek().expect(ANNOTATIONS_BROKEN).starts_with("x") {
@@ -115,13 +120,11 @@ pub fn parse_proof(qdimacs_string: String) {
             .peekable();
         words.next().expect(ANNOTATIONS_BROKEN);
         while words.peek().expect(ANNOTATIONS_BROKEN) != &"0" {
-            new_vars.push(
-                words
-                    .next()
-                    .expect(ANNOTATIONS_BROKEN)
-                    .parse::<usize>()
-                    .expect(ANNOTATIONS_BROKEN),
-            )
+            words
+                .next()
+                .expect(ANNOTATIONS_BROKEN)
+                .parse::<usize>()
+                .expect(ANNOTATIONS_BROKEN);
         }
         words.next().expect(ANNOTATIONS_BROKEN);
         while words.peek().expect(ANNOTATIONS_BROKEN) != &"0" {
@@ -131,11 +134,13 @@ pub fn parse_proof(qdimacs_string: String) {
                     .expect(ANNOTATIONS_BROKEN)
                     .parse::<usize>()
                     .expect(ANNOTATIONS_BROKEN),
-            )
+            );
+            annotation_link.push(current_annotation);
         }
         words.next().expect(ANNOTATIONS_BROKEN);
+        let mut annotation = Vec::new();
         while words.peek().expect(ANNOTATIONS_BROKEN) != &"0" {
-            annotations.push(
+            annotation.push(
                 words
                     .next()
                     .expect(ANNOTATIONS_BROKEN)
@@ -143,8 +148,11 @@ pub fn parse_proof(qdimacs_string: String) {
                     .expect(ANNOTATIONS_BROKEN),
             )
         }
+        annotations.push(annotation);
+        current_annotation += 1;
     }
     // Rule Lines
+    let mut rule_applicaitons = Vec::new();
     while lines.peek().is_some() {
         let mut words = lines
             .next()
@@ -156,14 +164,15 @@ pub fn parse_proof(qdimacs_string: String) {
             .expect(RULE_BROKEN)
             .parse::<usize>()
             .expect(RULE_BROKEN);
+        let mut literals = HashSet::new();
         while words.peek().expect(RULE_BROKEN) != &"0" {
-            annotations.push(
-                words
+            literals.insert(QBFLiteral {
+                literal: words
                     .next()
                     .expect(RULE_BROKEN)
                     .parse::<isize>()
                     .expect(RULE_BROKEN),
-            )
+            });
         }
         words.peek().expect(RULE_BROKEN);
         let antecedent1 = words
@@ -177,7 +186,14 @@ pub fn parse_proof(qdimacs_string: String) {
             .parse::<usize>()
             .expect(RULE_BROKEN);
         if antecedent2 == 0 {
+            rule_applicaitons.push(AllExpResRule::Axiom(Clause(literals), antecedent1));
         } else {
+            rule_applicaitons.push(AllExpResRule::Resolution(
+                Clause(literals),
+                antecedent1,
+                antecedent2,
+            ));
         }
     }
+    (qbf_vars, annotations, annotation_link, rule_applicaitons)
 }

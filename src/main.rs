@@ -4,7 +4,7 @@ extern crate ansi_term;
 mod qbf;
 mod literal;
 mod parse;
-//mod proof;
+mod proof;
 
 #[cfg(test)]
 mod tests;
@@ -37,7 +37,7 @@ fn main() -> std::io::Result<()> {
     }
     let (_, qbf) = parse_qdimacs(qbf_file_content);
     println!("{}", qbf);
-    //parse_proof(proof_file_content);
+    parse_proof(proof_file_content);
     Ok(())
 }
 
