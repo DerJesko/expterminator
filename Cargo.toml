@@ -5,4 +5,3 @@ authors = ["Jesko Dujmovic <jeskod+git@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-ansi_term = "0.12.1"

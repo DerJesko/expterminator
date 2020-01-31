@@ -1,13 +1,12 @@
-use crate::literal::QBFLiteral;
 use crate::proof::AllExpResRule;
-use crate::qbf::{Clause, CNF, QBF};
+use crate::qbf::{Clause, QBFLiteral};
 use std::collections::HashSet;
 
 static PREAMBLE_BROKEN: &str = "the preamble of the qdimacs file is broken";
 static QUANTIFIER_BROKEN: &str = "the quantifier part of the qdimacs file is broken";
 static CLAUSE_BROKEN: &str = "the clause matrix of the qdimacs file is broken";
 
-pub fn parse_qdimacs(qdimacs_string: String) -> (Vec<Clause>, QBF) {
+pub fn parse_qdimacs(qdimacs_string: String) -> (Vec<Clause>, Vec<usize>) {
     let mut lines = qdimacs_string.lines().peekable();
     // Comment Lines
     while lines.peek().expect(PREAMBLE_BROKEN).starts_with("c") {
@@ -68,7 +67,6 @@ pub fn parse_qdimacs(qdimacs_string: String) -> (Vec<Clause>, QBF) {
     }
     // Clause Lines
     let mut clauses = Vec::new();
-    let mut cnf = HashSet::new();
     for _ in 0..clause_number {
         let mut clause = HashSet::new();
         let mut literals = lines
@@ -77,26 +75,19 @@ pub fn parse_qdimacs(qdimacs_string: String) -> (Vec<Clause>, QBF) {
             .split_whitespace()
             .peekable();
         while literals.peek().expect(CLAUSE_BROKEN) != &"0" {
-            let literal = QBFLiteral {
-                literal: literals
+            let literal = QBFLiteral(
+                literals
                     .next()
                     .expect(CLAUSE_BROKEN)
                     .parse::<isize>()
                     .expect(CLAUSE_BROKEN),
-            };
+            );
             clause.insert(literal);
         }
         let c = Clause(clause);
-        clauses.push(c.clone());
-        cnf.insert(c);
+        clauses.push(c);
     }
-    (
-        clauses,
-        QBF {
-            vars,
-            cnf: CNF(cnf),
-        },
-    )
+    (clauses, vars)
 }
 
 static ANNOTATIONS_BROKEN: &str = "the annotations of the proof file are broken";
@@ -152,13 +143,14 @@ pub fn parse_proof(
         current_annotation += 1;
     }
     // Rule Lines
-    let mut rule_applicaitons = Vec::new();
+    let mut rule_applications = Vec::new();
     while lines.peek().is_some() {
         let mut words = lines
             .next()
             .expect(RULE_BROKEN)
             .split_whitespace()
             .peekable();
+        //println!("line");
         let _ = words
             .next()
             .expect(RULE_BROKEN)
@@ -166,15 +158,16 @@ pub fn parse_proof(
             .expect(RULE_BROKEN);
         let mut literals = HashSet::new();
         while words.peek().expect(RULE_BROKEN) != &"0" {
-            literals.insert(QBFLiteral {
-                literal: words
+            literals.insert(QBFLiteral(
+                words
                     .next()
                     .expect(RULE_BROKEN)
                     .parse::<isize>()
                     .expect(RULE_BROKEN),
-            });
+            ));
         }
-        words.peek().expect(RULE_BROKEN);
+        //println!("literals: {:?}", literals);
+        words.next().expect(RULE_BROKEN);
         let antecedent1 = words
             .next()
             .expect(RULE_BROKEN)
@@ -185,15 +178,16 @@ pub fn parse_proof(
             .expect(RULE_BROKEN)
             .parse::<usize>()
             .expect(RULE_BROKEN);
+        //println!("antecedent 2: {}", antecedent2);
         if antecedent2 == 0 {
-            rule_applicaitons.push(AllExpResRule::Axiom(Clause(literals), antecedent1));
+            rule_applications.push(AllExpResRule::Axiom(Clause(literals), antecedent1));
         } else {
-            rule_applicaitons.push(AllExpResRule::Resolution(
+            rule_applications.push(AllExpResRule::Resolution(
                 Clause(literals),
                 antecedent1,
                 antecedent2,
             ));
         }
     }
-    (qbf_vars, annotations, annotation_link, rule_applicaitons)
+    (qbf_vars, annotations, annotation_link, rule_applications)
 }
