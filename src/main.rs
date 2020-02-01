@@ -16,6 +16,7 @@ use std::io::{self, Read};
 fn main() -> std::io::Result<()> {
     let mut qbf_file_content = String::new();
     let mut proof_file_content = String::new();
+    // Read the QBF file
     match std::env::args().nth(1) {
         Some(qbf_file) => {
             if qbf_file.starts_with("-") {
@@ -27,6 +28,7 @@ fn main() -> std::io::Result<()> {
             print_help();
         }
     }
+    // Read the proof file
     match std::env::args().nth(2) {
         Some(proof_file) => {
             File::open(proof_file)?.read_to_string(&mut proof_file_content)?;
@@ -35,8 +37,10 @@ fn main() -> std::io::Result<()> {
             io::stdin().read_to_string(&mut proof_file_content)?;
         }
     }
+    // Parse the two read files
     let (clauses, orig_vars) = parse_qdimacs(qbf_file_content);
-    let (new_vars, _, _, rule_applications) = parse_proof(proof_file_content);
+    let (new_vars, rule_applications) = parse_proof(proof_file_content);
+    // Step 1
     let mut qrat_rules = Vec::new();
     let mut remove_later = Vec::new();
     for i in 1..new_vars.len() {
@@ -66,6 +70,7 @@ fn main() -> std::io::Result<()> {
         remove_later.push(a.clone());
         remove_later.push(b.clone());
     }
+    // Step 2
     let mut eliminate_universals = Vec::new();
     for rule in &rule_applications {
         match rule {
@@ -83,15 +88,23 @@ fn main() -> std::io::Result<()> {
             AllExpResRule::Resolution(_, _, _) => {}
         }
     }
+    // Step 3
+    // Remove original clauses
     for clause in clauses {
         qrat_rules.push(QRATRule::RemoveClause(clause));
     }
+    // Remove the clauses introduced in step 1
+    for clause in remove_later {
+        qrat_rules.push(QRATRule::RemoveClause(clause));
+    }
+    // Step 4
     for mut clause in eliminate_universals {
         while let Some(big_lit) = clause.find_biggest_universal(&orig_vars) {
             clause.0.remove(&big_lit);
             qrat_rules.push(QRATRule::RemoveLiteral(clause.clone(), big_lit.0));
         }
     }
+    // Step 5
     for rule in rule_applications {
         match rule {
             AllExpResRule::Axiom(_, _) => {}
@@ -111,6 +124,7 @@ fn main() -> std::io::Result<()> {
 }
 
 fn print_help() {
-    println!("Help!");
+    println!("Run\n`expterminator qbf_file`\nand feed in the proof via 'stdin' or\n`expterminator qbf_file all_exp_res_proof`");
+    println!("To get to the help page run `expterminator --help`");
     std::process::exit(0);
 }

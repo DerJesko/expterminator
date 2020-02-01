@@ -93,15 +93,10 @@ pub fn parse_qdimacs(qdimacs_string: String) -> (Vec<Clause>, Vec<usize>) {
 static ANNOTATIONS_BROKEN: &str = "the annotations of the proof file are broken";
 static RULE_BROKEN: &str = "the rule application part of the proof file is broken";
 
-pub fn parse_proof(
-    qdimacs_string: String,
-) -> (Vec<usize>, Vec<Vec<isize>>, Vec<usize>, Vec<AllExpResRule>) {
+pub fn parse_proof(qdimacs_string: String) -> (Vec<usize>, Vec<AllExpResRule>) {
     let mut lines = qdimacs_string.lines().peekable();
-    let mut annotation_link = Vec::new();
-    let mut current_annotation = 0;
     let mut qbf_vars = Vec::new();
     qbf_vars.push(0);
-    let mut annotations = Vec::new();
     // Annotation Lines
     while lines.peek().expect(ANNOTATIONS_BROKEN).starts_with("x") {
         let mut words = lines
@@ -126,21 +121,8 @@ pub fn parse_proof(
                     .parse::<usize>()
                     .expect(ANNOTATIONS_BROKEN),
             );
-            annotation_link.push(current_annotation);
         }
-        words.next().expect(ANNOTATIONS_BROKEN);
-        let mut annotation = Vec::new();
-        while words.peek().expect(ANNOTATIONS_BROKEN) != &"0" {
-            annotation.push(
-                words
-                    .next()
-                    .expect(ANNOTATIONS_BROKEN)
-                    .parse::<isize>()
-                    .expect(ANNOTATIONS_BROKEN),
-            )
-        }
-        annotations.push(annotation);
-        current_annotation += 1;
+        // No need to actually parse the annotations
     }
     // Rule Lines
     let mut rule_applications = Vec::new();
@@ -150,7 +132,6 @@ pub fn parse_proof(
             .expect(RULE_BROKEN)
             .split_whitespace()
             .peekable();
-        //println!("line");
         let _ = words
             .next()
             .expect(RULE_BROKEN)
@@ -166,7 +147,6 @@ pub fn parse_proof(
                     .expect(RULE_BROKEN),
             ));
         }
-        //println!("literals: {:?}", literals);
         words.next().expect(RULE_BROKEN);
         let antecedent1 = words
             .next()
@@ -178,7 +158,6 @@ pub fn parse_proof(
             .expect(RULE_BROKEN)
             .parse::<usize>()
             .expect(RULE_BROKEN);
-        //println!("antecedent 2: {}", antecedent2);
         if antecedent2 == 0 {
             rule_applications.push(AllExpResRule::Axiom(Clause(literals), antecedent1));
         } else {
@@ -189,5 +168,5 @@ pub fn parse_proof(
             ));
         }
     }
-    (qbf_vars, annotations, annotation_link, rule_applications)
+    (qbf_vars, rule_applications)
 }
