@@ -98,10 +98,11 @@ fn main() -> std::io::Result<()> {
         qrat_rules.push(QRATRule::RemoveClause(clause));
     }
     // Step 4
-    for mut clause in eliminate_universals {
-        while let Some(big_lit) = clause.find_biggest_universal(&orig_vars) {
-            clause.0.remove(&big_lit);
-            qrat_rules.push(QRATRule::RemoveLiteral(clause.clone(), big_lit.0));
+    for literal in universal_literals { //biggest to smallest
+        for mut clause in eliminate_universals {
+            if clause.0.remove(literal) {
+                qrat_rules.push(QRATRule::RemoveLiteral(clause.clone(), big_lit.0));
+            }
         }
     }
     // Step 5

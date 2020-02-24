@@ -28,6 +28,18 @@ impl Clause {
         accu
     }
 
+    pub fn universal_literals(vars: &Vec<usize>)-> Vec<(usize,usize)> {
+        let mut result = Vec::new();
+        for var in 0..vars.len() {
+            let block = vars[var];
+            if block % 2 == 1 {
+                result.push((block, var))
+            }
+        }
+        result.sort_by(|(a1,a2), (b1,b2)|a1.cmp(b1))
+        result
+    }
+
     pub fn find_biggest_universal(&self, vars: &Vec<usize>) -> Option<QBFLiteral> {
         let Clause(literals) = self;
         let mut result = None;
