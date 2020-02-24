@@ -98,12 +98,19 @@ fn main() -> std::io::Result<()> {
         qrat_rules.push(QRATRule::RemoveClause(clause));
     }
     // Step 4
-    for literal in universal_literals { //biggest to smallest
-        for mut clause in eliminate_universals {
-            if clause.0.remove(literal) {
-                qrat_rules.push(QRATRule::RemoveLiteral(clause.clone(), big_lit.0));
+    for (_, literal) in qbf::universal_literals(&orig_vars) {
+        //biggest to smallest
+        let mut temp_eliminate_universals = Vec::new();
+        for mut clause in eliminate_universals.drain(..) {
+            if clause.0.remove(&QBFLiteral(literal as isize)) {
+                qrat_rules.push(QRATRule::RemoveLiteral(clause.clone(), literal as isize));
             }
+            if clause.0.remove(&QBFLiteral(-(literal as isize))) {
+                qrat_rules.push(QRATRule::RemoveLiteral(clause.clone(), -(literal as isize)));
+            }
+            temp_eliminate_universals.push(clause);
         }
+        eliminate_universals = temp_eliminate_universals;
     }
     // Step 5
     for rule in rule_applications {

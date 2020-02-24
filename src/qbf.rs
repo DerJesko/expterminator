@@ -15,6 +15,18 @@ macro_rules! h {
     };
 }
 
+pub fn universal_literals(vars: &Vec<usize>) -> Vec<(usize, usize)> {
+    let mut result = Vec::new();
+    for var in 0..vars.len() {
+        let block = vars[var];
+        if block % 2 == 1 {
+            result.push((block, var))
+        }
+    }
+    result.sort_by(|(a1, _), (b1, _)| b1.cmp(a1));
+    result
+}
+
 #[derive(Clone, Debug)]
 pub struct Clause(pub HashSet<QBFLiteral>);
 
@@ -26,39 +38,6 @@ impl Clause {
             accu = (accu * (l.hash_helper() + 7)) % 2147483647;
         }
         accu
-    }
-
-    pub fn universal_literals(vars: &Vec<usize>)-> Vec<(usize,usize)> {
-        let mut result = Vec::new();
-        for var in 0..vars.len() {
-            let block = vars[var];
-            if block % 2 == 1 {
-                result.push((block, var))
-            }
-        }
-        result.sort_by(|(a1,a2), (b1,b2)|a1.cmp(b1))
-        result
-    }
-
-    pub fn find_biggest_universal(&self, vars: &Vec<usize>) -> Option<QBFLiteral> {
-        let Clause(literals) = self;
-        let mut result = None;
-        for l in literals {
-            if (l.variable()) < vars.len() && vars[l.variable()] % 2 == 1 {
-                if let Some((_, block)) = result {
-                    if block < vars[l.variable()] {
-                        result = Some((l.clone(), vars[l.variable()]))
-                    }
-                } else {
-                    result = Some((l.clone(), vars[l.variable()]))
-                }
-            }
-        }
-        if let Some((literal, _)) = result {
-            Some(literal)
-        } else {
-            None
-        }
     }
 }
 
