@@ -132,7 +132,14 @@ fn main() -> std::io::Result<()> {
 }
 
 fn print_help() {
-    println!("Run\n`expterminator qbf_file`\nand feed in the proof via 'stdin' or\n`expterminator qbf_file all_exp_res_proof`");
-    println!("To get to the help page run `expterminator --help`");
+    println!("usage: ./expterminator INPUT_FORMULA_PATH [INPUT_PROOF_PATH]```
+
+    * `INPUT_FORMULA_PATH` is the path to the QDIMACS file containing a quantified boolean formula.
+    * `INPUT_PROOF_PATH` is the path to the ∀-Exp+Res proof file.
+    If this is not specified the tool expects the proof to be input via STDIN.
+    * expterminator outputs the QRAT proof on STDOUT.
+
+For example, if your formula is in the QDIMACS file 'formula.qdimacs' (located in the directory from which you call expterminator) and your ∀-Exp+Res proof is in the file 'proof.res', then the following command writes its output to STDOUT:
+./drat2er formula.qdimacs proof.res");
     std::process::exit(0);
 }

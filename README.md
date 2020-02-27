@@ -1,24 +1,34 @@
-# Read Me Or Don't, I Don't Care
+# expterminator: Proof Transformer from ∀-Exp+Res to QRAT
 
-An implementation of [this paper](https://benjaminkiesl.github.io/publications/qrat_simulates_forall_exp_res_kiesl_seidl.pdf)
+expterminator is a tool for transforming ∀-Exp+Res proofs into QRAT proofs.
+It takes as input a quantified boolean formula (specified in the [QDIMACS format](http://www.qbflib.org/qdimacs.html)) together with a ∀-Exp+Res proof, and outputs a QRAT proof.
+The details of this proof transformation are described in "[QRAT Polynomially Simulates ∀-Exp+Res*](https://benjaminkiesl.github.io/publications/qrat_simulates_forall_exp_res_kiesl_seidl.pdf)".
 
-## Assumption
+## Getting Started
 
-The tool is written such that it assumes that the inputs are correct.
-It does not guarantee that it works properly if the inputs are broken.
+### Prerequistites
 
-## Usage
+To build expterminator, you need to have [Cargo](https://github.com/rust-lang/cargo/) and with a working [Rust toolchain](https://github.com/rust-lang/rust).
 
-Run
-```expterminator qbf_file```
-and feed in the proof via `stdin` or
-```expterminator qbf_file all_exp_res_proof```
+### Installation
 
-## Format (QBF)
+The easiest way to build expterminator is to run `cargo build` in the main directory. After this, the executable 'expterminator' is located at 'TODO'.
 
-[QDIMACS](http://www.qbflib.org/qdimacs.html)
+### Running expterminator
 
-## Format (Forall-Exp+Res* Proof)
+To run expterminator, just execute the following command from the shell:
+```./expterminator INPUT_FORMULA_PATH [INPUT_PROOF_PATH]```
+
+* `INPUT_FORMULA_PATH` is the path to the QDIMACS file containing a quantified boolean formula.
+* `INPUT_PROOF_PATH` is the path to the ∀-Exp+Res proof file.
+If this is not specified the tool expects the proof to be input via STDIN.
+* expterminator outputs the QRAT proof on STDOUT.
+
+For example, if your formula is in the QDIMACS file 'formula.qdimacs' (located in the directory from which you call expterminator) and your ∀-Exp+Res proof is in the file 'proof.res', then the following command writes its output to STDOUT:
+
+```./drat2er formula.qdimacs proof.res```
+
+## Input Format (∀-Exp+Res Proof)
 
 Forall Expansion Resolution Proof Trace
 
@@ -77,7 +87,3 @@ Here is the definition of the humaly readable FERP format:
 <pos>         =  "1" |  "2" | .... | <max-idx>
 <neg>         = "-"<pos>
 ```
-
-## Other
-
-Some of the comments or comments refer to variables from the paper.
