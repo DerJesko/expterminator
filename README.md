@@ -1,7 +1,7 @@
 # expterminator: Proof Transformer from ∀-Exp+Res to QRAT
 
 expterminator is a tool for transforming ∀-Exp+Res proofs into QRAT proofs.
-It takes as input a quantified boolean formula (specified in the [QDIMACS format](http://www.qbflib.org/qdimacs.html)) together with a ∀-Exp+Res proof, and outputs a QRAT proof.
+It takes as input a quantified boolean formula (specified in the [QDIMACS format](http://www.qbflib.org/qdimacs.html)) together with a ∀-Exp+Res proof (the proof system was introduced in [On Propositional QBF Expansions and Q-Resolution](https://pdfs.semanticscholar.org/17d8/fdf5882acd94ec6a6daa689bbe390dd397bb.pdf), and outputs a QRAT proof(the proof system was introduced in [Solution Validation and Extraction for QBF Preprocessing](https://www.cs.utexas.edu/~marijn/publications/jar16.pdf).
 The details of this proof transformation are described in "[QRAT Polynomially Simulates ∀-Exp+Res*](https://benjaminkiesl.github.io/publications/qrat_simulates_forall_exp_res_kiesl_seidl.pdf)".
 
 ## Getting Started
@@ -12,7 +12,7 @@ To build expterminator, you need to have [Cargo](https://github.com/rust-lang/ca
 
 ### Installation
 
-The easiest way to build expterminator is to run `cargo build` in the main directory. After this, the executable 'expterminator' is located at 'TODO'.
+The easiest way to build expterminator is to run `cargo build --release` in the main directory. After this, the executable 'expterminator' is located at `target/release/expterminator` in the project folder.
 
 ### Running expterminator
 
