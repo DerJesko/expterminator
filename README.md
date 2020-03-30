@@ -1,8 +1,6 @@
 # expterminator: Proof Transformer from ∀-Exp+Res to QRAT
 
-expterminator is a tool for transforming ∀-Exp+Res proofs into QRAT proofs.
-It takes as input a quantified boolean formula (specified in the [QDIMACS format](http://www.qbflib.org/qdimacs.html)) together with a ∀-Exp+Res proof (the proof system was introduced in [On Propositional QBF Expansions and Q-Resolution](https://pdfs.semanticscholar.org/17d8/fdf5882acd94ec6a6daa689bbe390dd397bb.pdf), and outputs a QRAT proof(the proof system was introduced in [Solution Validation and Extraction for QBF Preprocessing](https://www.cs.utexas.edu/~marijn/publications/jar16.pdf).
-The details of this proof transformation are described in "[QRAT Polynomially Simulates ∀-Exp+Res*](https://benjaminkiesl.github.io/publications/qrat_simulates_forall_exp_res_kiesl_seidl.pdf)".
+expterminator is a tool for transforming proofs that are produced by solvers of [quantified Boolean formulas](https://en.wikipedia.org/wiki/True_quantified_Boolean_formula). These solvers play an important role in computer science because they can be used as reasoning engines for the verification of software and hardware systems as well as for various tasks in artificial intelligence. In particular, expterminator can transform [∀-Exp+Res proofs](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.705.1452&rep=rep1&type=pdf) into [QRAT proofs](https://www.cs.utexas.edu/~marijn/publications/jar16.pdf). The details of this proof transformation are described in the paper [QRAT Polynomially Simulates ∀-Exp+Res](https://benjaminkiesl.github.io/publications/qrat_simulates_forall_exp_res_kiesl_seidl.pdf).
 
 ## Getting Started
 
@@ -30,7 +28,9 @@ For example, if your formula is in the QDIMACS file 'formula.qdimacs' (located i
 
 ## Input Format (∀-Exp+Res Proof)
 
-Forall Expansion Resolution Proof Trace
+The input format for the quantified boolean formula is [QDIMACS](http://www.qbflib.org/qdimacs.html).
+
+### Forall Expansion Resolution Proof Trace
 
 This is a simple extension of the sat trace format. The main difference is that
 this format needs to introduce the annotations that are used for each expanded
