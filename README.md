@@ -24,7 +24,7 @@ If this is not specified the tool expects the proof to be input via STDIN.
 
 For example, if your formula is in the QDIMACS file 'formula.qdimacs' (located in the directory from which you call expterminator) and your ∀-Exp+Res proof is in the file 'proof.res', then the following command writes its output to STDOUT:
 
-```./drat2er formula.qdimacs proof.res```
+```./expterminator formula.qdimacs proof.res```
 
 ## Input Format (∀-Exp+Res Proof)
 
